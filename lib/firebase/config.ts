@@ -1,5 +1,6 @@
 import { initializeApp, getApps, FirebaseApp } from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
+import { logger } from "@/lib/utils/logger";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -20,10 +21,11 @@ try {
     app = getApps()[0];
   }
   db = getFirestore(app);
-} catch (error: any) {
-  console.error("Firebase initialization error:", {
-    message: error.message,
-    code: error.code,
+} catch (error) {
+  const firebaseError = error as { message?: string; code?: string };
+  logger.error("Firebase initialization error", {
+    message: firebaseError.message,
+    code: firebaseError.code,
   });
   // Don't throw - let it fail gracefully
 }

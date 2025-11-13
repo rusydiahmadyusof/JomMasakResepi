@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Recipe } from "@/types/recipe";
@@ -10,7 +11,7 @@ interface RecipeCardProps {
   className?: string;
 }
 
-export function RecipeCard({ recipe, className }: RecipeCardProps) {
+export const RecipeCard = memo(function RecipeCard({ recipe, className }: RecipeCardProps) {
   return (
     <Link
       href={`/resepi/${recipe.id}`}
@@ -95,5 +96,5 @@ export function RecipeCard({ recipe, className }: RecipeCardProps) {
       </div>
     </Link>
   );
-}
+});
 

@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 import { contactFormSchema } from '@/lib/validations/contact-schema';
+import { logger } from '@/lib/utils/logger';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
 
     // Check if API key is configured
     if (!process.env.RESEND_API_KEY) {
-      console.error('RESEND_API_KEY is not configured');
+      logger.error('RESEND_API_KEY is not configured');
       return NextResponse.json(
         { error: 'Email service is not configured' },
         { status: 500 }
@@ -74,7 +75,7 @@ Mesej ini dihantar dari borang hubungi di JomMasakResepi
     });
 
     if (error) {
-      console.error('Resend error:', error);
+      logger.error('Resend error', { message: error.message, name: error.name });
       return NextResponse.json(
         { error: 'Failed to send email', details: error.message },
         { status: 500 }
@@ -86,10 +87,11 @@ Mesej ini dihantar dari borang hubungi di JomMasakResepi
       message: 'Email sent successfully',
       id: data?.id 
     });
-  } catch (error: any) {
-    console.error('Contact form error:', error);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Contact form error', error instanceof Error ? error : new Error(errorMessage));
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: errorMessage },
       { status: 500 }
     );
   }

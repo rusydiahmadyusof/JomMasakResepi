@@ -1,19 +1,10 @@
 import Link from "next/link";
-import { RecipeCategory } from "@/types/recipe";
-
-const categories: { name: RecipeCategory; slug: string; icon: string }[] = [
-  { name: "Sarapan", slug: "sarapan", icon: "🍳" },
-  { name: "Vegan", slug: "vegan", icon: "🥗" },
-  { name: "Daging", slug: "daging", icon: "🥩" },
-  { name: "Pencuci Mulut", slug: "pencuci-mulut", icon: "🍰" },
-  { name: "Makan Tengah Hari", slug: "makan-tengah-hari", icon: "🥪" },
-  { name: "Coklat", slug: "coklat", icon: "🍫" },
-];
+import { CATEGORIES } from "@/lib/constants/categories";
 
 export function CategoryGrid() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-      {categories.map((category) => (
+      {CATEGORIES.map((category) => (
         <Link
           key={category.slug}
           href={`/resepi?kategori=${category.slug}`}

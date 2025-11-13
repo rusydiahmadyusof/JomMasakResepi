@@ -6,16 +6,31 @@ import {
   query,
   where,
   orderBy,
-  QueryConstraint,
+  limit,
+  Timestamp,
+  DocumentData,
+  QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { db } from "./config";
 import { Recipe, RecipeCategory } from "@/types/recipe";
+import { logger } from "@/lib/utils/logger";
+
+/**
+ * Firestore timestamp type union
+ */
+type FirestoreTimestamp = Timestamp | Date | { toDate: () => Date } | undefined;
 
 /**
  * Convert Firestore timestamp to Date
  */
-function convertTimestamp(timestamp: any): Date {
-  if (timestamp?.toDate) {
+function convertTimestamp(timestamp: FirestoreTimestamp): Date {
+  if (!timestamp) {
+    return new Date();
+  }
+  if (timestamp instanceof Timestamp) {
+    return timestamp.toDate();
+  }
+  if (typeof timestamp === "object" && "toDate" in timestamp && typeof timestamp.toDate === "function") {
     return timestamp.toDate();
   }
   if (timestamp instanceof Date) {
@@ -25,29 +40,62 @@ function convertTimestamp(timestamp: any): Date {
 }
 
 /**
+ * Firestore document data type
+ */
+interface FirestoreRecipeData {
+  title?: string;
+  description?: string;
+  category?: string;
+  prepTime?: number;
+  cookTime?: number;
+  difficulty?: "Mudah" | "Sederhana" | "Sukar";
+  ingredients?: Array<{ id: string; name: string; amount: string; group?: string }>;
+  directions?: Array<{ id: string; step: number; instruction: string; imageUrl?: string }>;
+  nutrition?: {
+    calories?: number;
+    totalFat?: number;
+    protein?: number;
+    carbohydrate?: number;
+    cholesterol?: number;
+  };
+  imageUrl?: string;
+  createdAt?: FirestoreTimestamp;
+  author?: string;
+}
+
+/**
  * Convert Firestore document to Recipe
  */
-function docToRecipe(docData: any, id: string): Recipe {
+function docToRecipe(docData: DocumentData | FirestoreRecipeData, id: string): Recipe {
+  const data = docData as FirestoreRecipeData;
   return {
     id,
-    title: docData.title || "",
-    description: docData.description || "",
-    category: docData.category || "",
-    prepTime: docData.prepTime || 0,
-    cookTime: docData.cookTime || 0,
-    difficulty: docData.difficulty || "Mudah",
-    ingredients: docData.ingredients || [],
-    directions: docData.directions || [],
-    nutrition: docData.nutrition || {
-      calories: 0,
-      totalFat: 0,
-      protein: 0,
-      carbohydrate: 0,
-      cholesterol: 0,
-    },
-    imageUrl: docData.imageUrl || "",
-    createdAt: convertTimestamp(docData.createdAt),
-    author: docData.author || "JomMasakResepi",
+    title: data.title || "",
+    description: data.description || "",
+    category: data.category || "",
+    prepTime: data.prepTime || 0,
+    cookTime: data.cookTime || 0,
+    difficulty: data.difficulty || "Mudah",
+    ingredients: data.ingredients || [],
+    directions: data.directions || [],
+    nutrition: data.nutrition
+      ? {
+          calories: data.nutrition.calories || 0,
+          totalFat: data.nutrition.totalFat || 0,
+          protein: data.nutrition.protein || 0,
+          carbohydrate: data.nutrition.carbohydrate || 0,
+          cholesterol: data.nutrition.cholesterol || 0,
+        }
+      : {
+          calories: 0,
+          totalFat: 0,
+          protein: 0,
+          carbohydrate: 0,
+          cholesterol: 0,
+        },
+    imageUrl: data.imageUrl || "",
+    createdAt: convertTimestamp(data.createdAt),
+    author: data.author || "JomMasakResepi",
   };
 }
 
@@ -58,7 +106,7 @@ export async function getRecipes(): Promise<Recipe[]> {
   try {
     // Check if db is initialized
     if (!db) {
-      console.error("Firestore database not initialized");
+      logger.error("Firestore database not initialized");
       return [];
     }
 
@@ -69,10 +117,11 @@ export async function getRecipes(): Promise<Recipe[]> {
     try {
       const q = query(recipesRef, orderBy("createdAt", "desc"));
       querySnapshot = await getDocs(q);
-    } catch (error: any) {
+    } catch (error) {
+      const firestoreError = error as { code?: string; message?: string; stack?: string };
       // If index error, try without orderBy
-      if (error.code === "failed-precondition" || error.message?.includes("index")) {
-        console.warn("Firestore index not found, fetching without orderBy. Creating index recommended.");
+      if (firestoreError.code === "failed-precondition" || firestoreError.message?.includes("index")) {
+        logger.warn("Firestore index not found, fetching without orderBy. Creating index recommended.");
         querySnapshot = await getDocs(recipesRef);
         // Sort manually
         const docs = querySnapshot.docs.map((doc) => ({
@@ -87,20 +136,21 @@ export async function getRecipes(): Promise<Recipe[]> {
         return docs.map((item) => item.data);
       }
       // Log the actual error for debugging
-      console.error("Firestore query error:", {
-        code: error.code,
-        message: error.message,
-        stack: error.stack,
+      logger.error("Firestore query error", {
+        code: firestoreError.code,
+        message: firestoreError.message,
+        stack: firestoreError.stack,
       });
       throw error;
     }
     
     return querySnapshot.docs.map((doc) => docToRecipe(doc.data(), doc.id));
-  } catch (error: any) {
-    console.error("Error fetching recipes:", {
-      error: error.message,
-      code: error.code,
-      name: error.name,
+  } catch (error) {
+    const firestoreError = error as { message?: string; code?: string; name?: string };
+    logger.error("Error fetching recipes", {
+      error: firestoreError.message,
+      code: firestoreError.code,
+      name: firestoreError.name,
     });
     
     // Return empty array to prevent app crash
@@ -115,7 +165,7 @@ export async function getRecipeById(id: string): Promise<Recipe | null> {
   try {
     // Check if db is initialized
     if (!db) {
-      console.error("Firestore database not initialized");
+      logger.error("Firestore database not initialized");
       return null;
     }
     const recipeRef = doc(db, "recipes", id);
@@ -127,7 +177,7 @@ export async function getRecipeById(id: string): Promise<Recipe | null> {
     
     return docToRecipe(recipeSnap.data(), recipeSnap.id);
   } catch (error) {
-    console.error("Error fetching recipe:", error);
+    logger.error("Error fetching recipe", error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -141,7 +191,7 @@ export async function getRecipesByCategory(
   try {
     // Check if db is initialized
     if (!db) {
-      console.error("Firestore database not initialized");
+      logger.error("Firestore database not initialized");
       return [];
     }
     const recipesRef = collection(db, "recipes");
@@ -155,10 +205,11 @@ export async function getRecipesByCategory(
         orderBy("createdAt", "desc")
       );
       querySnapshot = await getDocs(q);
-    } catch (error: any) {
+    } catch (error) {
+      const firestoreError = error as { code?: string; message?: string };
       // If index error, try without orderBy
-      if (error.code === "failed-precondition" || error.message?.includes("index")) {
-        console.warn("Firestore index not found, fetching without orderBy. Creating index recommended.");
+      if (firestoreError.code === "failed-precondition" || firestoreError.message?.includes("index")) {
+        logger.warn("Firestore index not found, fetching without orderBy. Creating index recommended.");
         const q = query(recipesRef, where("category", "==", category));
         querySnapshot = await getDocs(q);
         // Sort manually
@@ -178,20 +229,47 @@ export async function getRecipesByCategory(
     
     return querySnapshot.docs.map((doc) => docToRecipe(doc.data(), doc.id));
   } catch (error) {
-    console.error("Error fetching recipes by category:", error);
+    logger.error("Error fetching recipes by category", error instanceof Error ? error : new Error(String(error)));
     return [];
   }
 }
 
 /**
- * Get featured recipe (first recipe or by featured flag)
+ * Get featured recipe (first recipe by createdAt desc)
+ * Optimized to fetch only 1 recipe instead of all
  */
 export async function getFeaturedRecipe(): Promise<Recipe | null> {
   try {
-    const recipes = await getRecipes();
-    return recipes.length > 0 ? recipes[0] : null;
+    // Check if db is initialized
+    if (!db) {
+      logger.error("Firestore database not initialized");
+      return null;
+    }
+
+    const recipesRef = collection(db, "recipes");
+    
+    // Try with orderBy and limit to fetch only 1 recipe
+    try {
+      const q = query(recipesRef, orderBy("createdAt", "desc"), limit(1));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        return null;
+      }
+      
+      return docToRecipe(querySnapshot.docs[0].data(), querySnapshot.docs[0].id);
+    } catch (error) {
+      const firestoreError = error as { code?: string; message?: string };
+      // If index error, fallback to fetching all and taking first
+      if (firestoreError.code === "failed-precondition" || firestoreError.message?.includes("index")) {
+        logger.warn("Firestore index not found, falling back to fetching all recipes for featured recipe.");
+        const recipes = await getRecipes();
+        return recipes.length > 0 ? recipes[0] : null;
+      }
+      throw error;
+    }
   } catch (error) {
-    console.error("Error fetching featured recipe:", error);
+    logger.error("Error fetching featured recipe", error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -202,13 +280,13 @@ export async function getFeaturedRecipe(): Promise<Recipe | null> {
 export async function getRelatedRecipes(
   category: string,
   excludeId: string,
-  limit: number = 4
+  limitCount: number = 4
 ): Promise<Recipe[]> {
   try {
     const recipes = await getRecipesByCategory(category as RecipeCategory);
-    return recipes.filter((r) => r.id !== excludeId).slice(0, limit);
+    return recipes.filter((r) => r.id !== excludeId).slice(0, limitCount);
   } catch (error) {
-    console.error("Error fetching related recipes:", error);
+    logger.error("Error fetching related recipes", error instanceof Error ? error : new Error(String(error)));
     return [];
   }
 }

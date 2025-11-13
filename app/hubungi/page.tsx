@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { contactFormSchema, type ContactFormData } from "@/lib/validations/contact-schema";
+import { logger } from "@/lib/utils/logger";
 
 export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,12 +69,13 @@ export default function ContactPage() {
         enquiryType: "General",
         message: "",
       });
-      setTimeout(() => setIsSubmitted(false), 5000);
-    } catch (error: any) {
-      console.error('Error submitting form:', error);
-      setErrors({ 
-        _form: error.message || 'Gagal menghantar mesej. Sila cuba lagi.' 
-      });
+          setTimeout(() => setIsSubmitted(false), 5000);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Gagal menghantar mesej. Sila cuba lagi.';
+          logger.error('Error submitting form', error instanceof Error ? error : new Error(errorMessage));
+          setErrors({ 
+            _form: errorMessage
+          });
     } finally {
       setIsSubmitting(false);
     }

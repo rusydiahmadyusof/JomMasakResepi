@@ -1,7 +1,11 @@
 import { Suspense } from "react";
+import { getRecipes } from "@/lib/firebase/firestore";
 import { RecipesContent } from "./recipes-content";
 
-export default function RecipesPage() {
+export default async function RecipesPage() {
+  // Fetch recipes on server for better performance
+  const initialRecipes = await getRecipes();
+
   return (
     <div className="container mx-auto px-4 py-8">
       <Suspense
@@ -12,7 +16,7 @@ export default function RecipesPage() {
           </div>
         }
       >
-        <RecipesContent />
+        <RecipesContent initialRecipes={initialRecipes} />
       </Suspense>
     </div>
   );

@@ -58,7 +58,8 @@ export default async function RecipePage({ params }: RecipePageProps) {
       </Suspense>
     );
   } catch (error) {
-    console.error("Error loading recipe page:", error);
+    const { logger } = await import("@/lib/utils/logger");
+    logger.error("Error loading recipe page", error instanceof Error ? error : new Error(String(error)));
     notFound();
   }
 }

@@ -1,45 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { Recipe } from "@/types/recipe";
 import { RecipeGrid } from "@/components/recipe/recipe-grid";
 import { RecipeCategory } from "@/types/recipe";
+import { CATEGORIES, CATEGORY_MAP } from "@/lib/constants/categories";
+import { logger } from "@/lib/utils/logger";
 
-const categories: { name: RecipeCategory; slug: string; icon: string }[] = [
-  { name: "Sarapan", slug: "sarapan", icon: "🍳" },
-  { name: "Vegan", slug: "vegan", icon: "🥗" },
-  { name: "Daging", slug: "daging", icon: "🥩" },
-  { name: "Pencuci Mulut", slug: "pencuci-mulut", icon: "🍰" },
-  { name: "Makan Tengah Hari", slug: "makan-tengah-hari", icon: "🥪" },
-  { name: "Coklat", slug: "coklat", icon: "🍫" },
-];
+interface RecipesContentProps {
+  initialRecipes?: Recipe[];
+}
 
-const categoryMap: Record<string, RecipeCategory> = {
-  sarapan: "Sarapan",
-  vegan: "Vegan",
-  daging: "Daging",
-  "pencuci-mulut": "Pencuci Mulut",
-  "makan-tengah-hari": "Makan Tengah Hari",
-  coklat: "Coklat",
-};
-
-export function RecipesContent() {
+export function RecipesContent({ initialRecipes = [] }: RecipesContentProps) {
   const searchParams = useSearchParams();
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>(initialRecipes);
+  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>(initialRecipes);
   const [selectedCategory, setSelectedCategory] = useState<RecipeCategory | "Semua">("Semua");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(initialRecipes.length === 0);
 
   // Initialize category from URL query parameter
   useEffect(() => {
     const kategoriParam = searchParams.get("kategori");
-    if (kategoriParam && categoryMap[kategoriParam]) {
-      setSelectedCategory(categoryMap[kategoriParam]);
+    if (kategoriParam && CATEGORY_MAP[kategoriParam]) {
+      setSelectedCategory(CATEGORY_MAP[kategoriParam]);
     }
   }, [searchParams]);
 
   useEffect(() => {
+    // Only fetch if we don't have initial recipes (server-side data)
+    if (initialRecipes.length > 0) {
+      return;
+    }
+
     async function fetchRecipes() {
       try {
         setIsLoading(true);
@@ -49,21 +42,25 @@ export function RecipesContent() {
         setRecipes(allRecipes);
         setFilteredRecipes(allRecipes);
       } catch (error) {
-        console.error("Error fetching recipes:", error);
+        logger.error("Error fetching recipes", error instanceof Error ? error : new Error(String(error)));
       } finally {
         setIsLoading(false);
       }
     }
     fetchRecipes();
-  }, []);
+  }, [initialRecipes.length]);
+
+  // Memoize filtered recipes to avoid unnecessary recalculations
+  const filteredRecipesMemo = useMemo(() => {
+    if (selectedCategory === "Semua") {
+      return recipes;
+    }
+    return recipes.filter((recipe) => recipe.category === selectedCategory);
+  }, [selectedCategory, recipes]);
 
   useEffect(() => {
-    if (selectedCategory === "Semua") {
-      setFilteredRecipes(recipes);
-    } else {
-      setFilteredRecipes(recipes.filter((recipe) => recipe.category === selectedCategory));
-    }
-  }, [selectedCategory, recipes]);
+    setFilteredRecipes(filteredRecipesMemo);
+  }, [filteredRecipesMemo]);
 
   return (
     <>
@@ -89,7 +86,7 @@ export function RecipesContent() {
           >
             Semua Resepi
           </button>
-          {categories.map((category) => (
+          {CATEGORIES.map((category) => (
             <button
               key={category.slug}
               onClick={() => setSelectedCategory(category.name)}
