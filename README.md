@@ -1,59 +1,58 @@
 # JomMasakResepi
 
-Platform resepi masakan Malaysia yang mudah dan sedap. Dibina dengan Next.js 14, Firebase, dan Tailwind CSS.
+![JomMasakResepi](public/jommasakresepi.png)
 
-## Ciri-ciri
+A modern recipe website for Malaysian cuisine, built with Next.js and Firebase. Browse authentic recipes with detailed ingredients, step-by-step instructions, and nutrition information.
 
-- 🍳 Koleksi resepi masakan Malaysia
-- 📱 Reka bentuk responsif (mobile-first)
-- 🔍 Penapisan mengikut kategori
-- 📊 Maklumat nutrisi untuk setiap resepi
-- 🌐 Semua kandungan dalam Bahasa Malaysia
-- 💰 Kos sifar (Firebase Spark Plan + Vercel Free Tier)
-- 📧 Borang hubungi dengan email integration (Resend)
+## Features
 
-## Teknologi
+- 🍳 Collection of Malaysian recipes
+- 📱 Responsive design (mobile-first)
+- 🔍 Category filtering
+- 📊 Nutrition information for each recipe
+- 🌐 Full Malay language support
+- 💰 Zero cost (Firebase Spark Plan + Vercel Free Tier)
+- 📧 Contact form with email integration (Resend)
+
+## Tech Stack
 
 - **Framework**: Next.js 14+ (App Router)
-- **Bahasa**: TypeScript
+- **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **Database**: Firebase Firestore
 - **Images**: External URLs (Unsplash)
 - **Deployment**: Vercel
 - **Validation**: Zod
-- **Email**: Resend (for contact form)
+- **Email**: Resend
 
-## Persediaan
+## Getting Started
 
-### 1. Prerequisites
+### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm/yarn/pnpm
-- Akaun Firebase
-- Akaun Vercel (untuk deployment)
-- Akaun Resend (untuk contact form - percuma)
+- Firebase account
+- Vercel account (for deployment)
+- Resend account (free - for contact form)
 
-### 2. Install Dependencies
+### Installation
+
+1. Clone the repository
+
+```bash
+git clone https://github.com/yourusername/JomMasakResepi.git
+cd JomMasakResepi
+```
+
+2. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Setup Firebase
+3. Set up environment variables
 
-1. Pergi ke [Firebase Console](https://console.firebase.google.com)
-2. Buat projek baru (atau gunakan yang sedia ada)
-3. Aktifkan **Firestore Database**:
-   - Pergi ke Firestore Database
-   - Klik "Create database"
-   - Pilih "Start in test mode" (untuk MVP)
-   - Pilih lokasi (contoh: `asia-southeast1` untuk Singapore)
-4. Dapatkan config values:
-   - Pergi ke Project Settings (gear icon)
-   - Scroll ke "Your apps"
-   - Klik pada Web icon (`</>`) atau tambah web app baru
-   - Salin nilai config
-5. Buat `.env.local` file di root directory:
+Create a `.env.local` file in the root directory:
 
 ```env
 # Firebase Configuration
@@ -68,127 +67,61 @@ RESEND_API_KEY=re_xxxxxxxxxxxxx
 CONTACT_EMAIL=your-email@example.com
 ```
 
-**Nota**: 
-- Projek ini menggunakan external image URLs (Unsplash) dan tidak memerlukan Firebase Storage
-- Untuk Resend, daftar di [resend.com](https://resend.com) (percuma - 3,000 emails/bulan)
+4. Set up Firebase
 
-### 4. Setup Firestore Security Rules
+- Go to [Firebase Console](https://console.firebase.google.com)
+- Create a new project
+- Enable **Firestore Database** (start in test mode)
+- Copy your Firebase config values to `.env.local`
+- Set up Firestore Security Rules (see `firestore.rules`)
 
-**PENTING**: Anda perlu membenarkan writes sementara untuk seed database, kemudian tukar kembali kepada read-only.
-
-#### Langkah 1: Benarkan Writes (Untuk Seeding)
-
-Pergi ke Firestore Database > Rules tab, paste:
-
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /recipes/{document=**} {
-      allow read: if true;
-      allow write: if true;  // SEMENTARA - untuk seeding
-    }
-  }
-}
-```
-
-Klik "Publish"
-
-#### Langkah 2: Selepas Seeding - Tukar kepada Read-Only
-
-Selepas menjalankan seed script, update rules kepada read-only:
-
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /recipes/{document=**} {
-      allow read: if true;
-      allow write: if false;  // Read-only untuk production
-    }
-  }
-}
-```
-
-Klik "Publish"
-
-**Nota**: Untuk setup terperinci, lihat `firestore.rules` file.
-
-### 5. Seed Database (Optional)
-
-Untuk menambah sample recipes ke Firestore:
+5. Seed the database (optional)
 
 ```bash
-# tsx sudah termasuk dalam devDependencies
-# Run seed script
 npx tsx scripts/seed-firestore.ts
 ```
 
-Ini akan menambah 9 sample resepi masakan Malaysia ke Firestore anda.
-
-**Nota**: Pastikan `.env.local` sudah disetup sebelum menjalankan script ini.
-
-### 6. Run Development Server
+6. Run the development server
 
 ```bash
 npm run dev
 ```
 
-Buka [http://localhost:3000](http://localhost:3000) untuk melihat aplikasi.
+Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-## Development
-
-```bash
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Lint code
-npm run lint
-```
-
-## Scripts Tersedia
+## Available Scripts
 
 ```bash
-# Seed database dengan sample recipes
-npx tsx scripts/seed-firestore.ts
+# Development
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Lint code
 
-# Delete semua recipes dari Firestore
-npx tsx scripts/delete-all-recipes.ts
-
-# Trigger Firestore index creation (jika diperlukan)
-npx tsx scripts/create-indexes.ts
+# Database
+npx tsx scripts/seed-firestore.ts        # Seed database with sample recipes
+npx tsx scripts/delete-all-recipes.ts    # Delete all recipes from Firestore
+npx tsx scripts/create-indexes.ts       # Trigger Firestore index creation
 ```
 
 ## Deployment
 
 ### Vercel
 
-1. Push code ke GitHub/GitLab/Bitbucket
-2. Import project di [Vercel](https://vercel.com)
-3. Tambah environment variables dari `.env.local`:
-   - Semua `NEXT_PUBLIC_FIREBASE_*` variables
-   - `RESEND_API_KEY`
-   - `CONTACT_EMAIL`
+1. Push your code to GitHub
+2. Import your project on [Vercel](https://vercel.com)
+3. Add environment variables from `.env.local`
 4. Deploy!
 
-Vercel akan automatically deploy setiap kali anda push ke branch utama.
+Vercel will automatically deploy on every push to the main branch.
 
-## Struktur Projek
+## Project Structure
 
 ```
 JomMasakResepi/
 ├── app/                    # Next.js App Router pages
 │   ├── page.tsx           # Home page
 │   ├── resepi/            # Recipe pages
-│   │   ├── page.tsx      # Recipe listing with filters
-│   │   ├── [id]/         # Dynamic recipe detail page
-│   │   └── recipes-content.tsx  # Client component for filtering
 │   ├── hubungi/           # Contact page
 │   └── tentang-kami/      # About page
 ├── components/            # React components
@@ -200,64 +133,9 @@ JomMasakResepi/
 │   ├── utils/            # Utility functions
 │   └── validations/      # Zod schemas
 ├── types/                # TypeScript types
-├── data/                 # Sample data
 ├── scripts/              # Utility scripts
-│   ├── seed-firestore.ts
-│   ├── delete-all-recipes.ts
-│   └── create-indexes.ts
 └── public/               # Static assets
 ```
-
-## Firebase Free Tier Limits
-
-- **Firestore**: 50K reads/day, 20K writes/day, 1GB storage
-- **Hosting**: Tidak digunakan (kami guna Vercel)
-- **Storage**: Tidak digunakan (kami guna external image URLs)
-
-Untuk MVP, limit ini lebih daripada cukup!
-
-## Troubleshooting
-
-### "Firebase: Error (auth/configuration-not-found)"
-
-- Pastikan `.env.local` wujud dan ada semua required variables
-- Restart dev server selepas tambah `.env.local`
-
-### "Permission denied" when reading recipes
-
-- Check Firestore Security Rules sudah published
-- Pastikan rules allow `read: if true`
-
-### "Permission denied" when seeding
-
-- Pastikan Firestore rules allow `write: if true` (sementara untuk seeding)
-- Selepas seeding, tukar kembali kepada `write: if false`
-
-### Images not loading
-
-- Check `next.config.js` ada correct image domains
-- Untuk Unsplash images, mereka sepatutnya berfungsi terus
-- Semua images guna external URLs (Unsplash) - tidak perlu Firebase Storage
-
-### ChunkLoadError: Loading chunk failed
-
-- Clear `.next` cache: `Remove-Item -Recurse -Force .next` (PowerShell) atau `rm -rf .next` (Mac/Linux)
-- Restart dev server
-- Hard refresh browser: `Ctrl + Shift + R` (Windows) atau `Cmd + Shift + R` (Mac)
-
-### Contact form tidak menghantar email
-
-- Pastikan `RESEND_API_KEY` dan `CONTACT_EMAIL` sudah disetup dalam `.env.local`
-- Check Resend dashboard untuk melihat status emails
-- Pastikan API key valid dan tidak expired
-
-## Catatan Penting
-
-- **Zero Cost**: Projek ini direka untuk menggunakan Firebase Spark Plan (percuma) dan Vercel Free Tier
-- **Read-Only**: MVP ini adalah read-only - tiada authentication atau user features
-- **Images**: Menggunakan external image URLs dari Unsplash (tidak memerlukan Firebase Storage)
-- **Content**: Semua kandungan dalam Bahasa Malaysia
-- **Email**: Contact form menggunakan Resend (percuma - 3,000 emails/bulan)
 
 ## License
 
